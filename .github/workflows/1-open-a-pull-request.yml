@@ -1,16 +1,21 @@
-name: Step 1, Open an issue
+name: Step 1, Open a pull request
 
-# This workflow listens for the learner to open an issue with the title containing 'NewIssue'.
+# This step listens for the learner to create an issue with the title 'NewIssue'.
 # This workflow updates from step 1 to step 2.
 
+# This will run every time an issue is created.
+# Reference: https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows
 on:
-  workflow_dispatch:  # Allows manual triggering of the workflow
+  workflow_dispatch:
   issues:
     types:
-      - opened  # Triggers the workflow when an issue is opened
+      - opened
 
+# Reference: https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
-  contents: write  # Grants permission to modify repository contents
+  # Need `contents: read` to checkout the repository.
+  # Need `contents: write` to update the step metadata.
+  contents: write
 
 jobs:
   # Get the current step to only run the main job when the learner is on the same step.
@@ -18,12 +23,11 @@ jobs:
     name: Check current step number
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
       - id: get_step
         run: |
-          # Read the current step from the -step.txt file
-          echo "current_step=$(cat .github/steps/-step.txt)" >> $GITHUB_OUTPUT
+          echo "current_step=$(cat ./.github/steps/-step.txt)" >> $GITHUB_OUTPUT
     outputs:
       current_step: ${{ steps.get_step.outputs.current_step }}
 
@@ -31,49 +35,33 @@ jobs:
     name: On open an issue
     needs: get_current_step
 
-    # Run this job only when:
-    # 1. The repository is not a template.
-    # 2. The current step is 1.
-    # 3. The issue title contains 'NewIssue'.
+    # We will only run this action when:
+    # 1. This repository isn't the template repository.
+    # 2. The step is currently 1.
+    # 3. The issue title is 'NewIssue'.
+    # Reference: https://docs.github.com/en/actions/learn-github-actions/contexts
+    # Reference: https://docs.github.com/en/actions/learn-github-actions/expressions
     if: >-
       ${{ !github.event.repository.is_template
           && needs.get_current_step.outputs.current_step == 1
-          && contains(github.event.issue.title, 'NewIssue') }}
+          && github.event.issue.title == 'NewIssue' }}
 
+    # We'll run Ubuntu for performance instead of Mac or Windows.
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # We'll need to check out the repository so that we can edit the README.
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensures all branches are fetched
+          fetch-depth: 0 # Let's get all the branches.
+          ref: update-game # Important, as normally `issues` event won't grab other branches.
 
-      - name: Update step file to 2-assign-yourself.md
-        run: |
-          # Rename '1-open-a-pull-request.md' to '2-assign-yourself.md'
-          mv .github/steps/1-open-a-pull-request.md .github/steps/2-assign-yourself.md
-          
-          # Update the content of the new file to reflect Step 2
-          echo "Updated step from 1 to 2. Assign Yourself" > .github/steps/2-assign-yourself.md
-          echo "Step 2: Now, assign yourself to the issue and proceed." >> .github/steps/2-assign-yourself.md
-
-      - name: Replace README with 2-assign-yourself.md content
-        run: |
-          # Replace the README file (or whatever file is being used to show instructions) with the content of 2-assign-yourself.md
-          cat .github/steps/2-assign-yourself.md > README.md
-          
-      - name: Commit and push changes
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add README.md .github/steps/2-assign-yourself.md
-          git commit -m "Updated README to Step 2 - Assign Yourself"
-          git push origin main
-
-      - name: Update step.txt to reflect current step
-        run: |
-          # Update the step.txt file to mark the current step as 2
-          echo "2" > .github/steps/-step.txt
-          git add .github/steps/-step.txt
-          git commit -m "Advance to step 2"
-          git push origin main
+      # In README.md, switch step 1 for step 2.
+      - name: Update to step 2
+        uses: skills/action-update-step@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          from_step: 1
+          to_step: 2
+          branch_name: update-game
