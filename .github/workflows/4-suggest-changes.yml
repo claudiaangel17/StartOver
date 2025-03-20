@@ -1,13 +1,13 @@
 name: Step 4, Suggest changes
 
-# This step triggers after the user leaves a review comment.
+# This step triggers after the user comments on an issue.
 # This workflow updates from step 4 to step 5.
 
-# This will run every time we leave a review comment.
+# This will run every time a user comments on an issue.
 # Reference: https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows
 on:
   workflow_dispatch:
-  pull_request_review_comment:
+  issue_comment:
     types:
       - created
 
