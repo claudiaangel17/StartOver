@@ -3,13 +3,12 @@ name: Step 5, Apply changes
 # This step triggers after the user applies the pull request suggested change.
 # This workflow updates from step 5 to step 6.
 
-# This will run every time we push to the `update-game branch`.
+# This will run whenever an issue is closed in the repository.
 # Reference: https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - update-game
+  issues:
+    types: [closed]
 
 # Reference: https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
